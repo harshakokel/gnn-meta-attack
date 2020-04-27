@@ -13,6 +13,7 @@ import pickle
 from datetime import date
 from matplotlib import pyplot as plt
 import scipy.sparse as sp
+import os
 try:
     from tqdm import tqdm
 except ImportError:
@@ -29,7 +30,9 @@ variant = "A-Meta-Train"
 share_perturbations = 0.05
 dataset = "citeseer"
 train_iters = 100
-experiment_prefix = date.today().strftime("%m_%d_")+dataset+"_"+str(share_perturbations)+"_"+variant
+experiment_prefix = "./experiments/"+date.today().strftime("%m_%d_")+dataset+"_"+str(share_perturbations)+"_"+variant
+if not  os.path.isdir(experiment_prefix):
+    os.makedirs(experiment_prefix)
 record_experiment = True
 
 
@@ -75,9 +78,9 @@ split_train, split_val, split_unlabeled = utils.train_val_test_split_tabular(np.
                                                                        stratify=_z_obs)
 
 if record_experiment:
-    pickle.dump(open('./experiment/'+experiment_prefix+'/split_train.pickle', 'wb'), split_train)
-    pickle.dump(open('./experiment/' + experiment_prefix + '/split_val.pickle', 'wb'), split_val)
-    pickle.dump(open('./experiment/' + experiment_prefix + '/split_unlabeled.pickle', 'wb'), split_unlabeled)
+    pickle.dump(split_train, open(experiment_prefix+'/split_train.pickle', 'wb'))
+    pickle.dump(split_val, open( experiment_prefix + '/split_val.pickle', 'wb'))
+    pickle.dump(split_unlabeled, open( experiment_prefix + '/split_unlabeled.pickle', 'wb'))
 
 split_unlabeled = np.union1d(split_val, split_unlabeled)
 
@@ -130,7 +133,7 @@ else:  # Both
     idx_attack = np.union1d(split_train, split_unlabeled)
 
 if record_experiment:
-    pickle.dump(open('./experiment/' + experiment_prefix + '/idx_attack.pickle', 'wb'), idx_attack)
+    pickle.dump(idx_attack, open( experiment_prefix + '/idx_attack.pickle', 'wb'))
 
 # In[7]:
 
@@ -159,7 +162,7 @@ else:
     gcn_attack.attack(perturbations, split_train, idx_attack)
 
 if record_experiment:
-    pickle.dump(open('./experiment/' + experiment_prefix + '/gcn_attack.pickle', 'wb'), gcn_attack)
+    pickle.dump( gcn_attack, open( experiment_prefix + '/gcn_attack.pickle', 'wb'))
 
 
 # In[10]:
@@ -169,8 +172,8 @@ adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session
 modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
 
 if record_experiment:
-    pickle.dump(open('./experiment/' + experiment_prefix + '/adjacency_changes.pickle', 'wb'), adjacency_changes)
-    pickle.dump(open('./experiment/' + experiment_prefix + '/modified_adjacency.pickle', 'wb'), modified_adjacency)
+    pickle.dump(adjacency_changes, open( experiment_prefix + '/adjacency_changes.pickle', 'wb'))
+    pickle.dump(modified_adjacency, open( experiment_prefix + '/modified_adjacency.pickle', 'wb'))
 
 # In[11]:
 
@@ -197,9 +200,9 @@ for _it in tqdm(range(re_trainings)):
     accuracy_clean_unlabeled = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
     accuracies_clean_unlabeled.append(accuracy_clean_unlabeled)
     if record_experiment:
-        pickle.dump(open('./experiment/' + experiment_prefix + '/gcn_before_attack'+str(_it)+'.pickle', 'wb'), gcn_before_attack)
-        pickle.dump(open('./experiment/' + experiment_prefix + '/accuracy_clean_unlabeled'+str(_it)+'.pickle', 'wb'), accuracy_clean_unlabeled)
-        pickle.dump(open('./experiment/' + experiment_prefix + '/accuracy_clean_val'+str(_it)+'.pickle', 'wb'), accuracy_clean_val)
+        pickle.dump(gcn_before_attack, open( experiment_prefix + '/gcn_before_attack'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_unlabeled, open( experiment_prefix + '/accuracy_clean_unlabeled'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_val, open( experiment_prefix + '/accuracy_clean_val'+str(_it)+'.pickle', 'wb'))
 
 # In[14]:
 
@@ -220,10 +223,9 @@ for _it in tqdm(range(re_trainings)):
     accuracy_perturbed_val = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_val].mean()
     accuracies_atk_val.append(accuracy_perturbed_val)
     if record_experiment:
-        pickle.dump(open('./experiment/' + experiment_prefix + '/gcn_after_attack'+str(_it)+'.pickle', 'wb'), gcn_after_attack)
-        pickle.dump(open('./experiment/' + experiment_prefix + '/accuracy_perturbed_unlabeled'+str(_it)+'.pickle', 'wb'), accuracy_perturbed_unlabeled)
-        pickle.dump(open('./experiment/' + experiment_prefix + '/accuracy_perturbed_val' + str(_it) + '.pickle', 'wb'),
-                    accuracy_perturbed_val)
+        pickle.dump(gcn_after_attack, open( experiment_prefix + '/gcn_after_attack'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_unlabeled, open( experiment_prefix + '/accuracy_perturbed_unlabeled'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_val, open( experiment_prefix + '/accuracy_perturbed_val' + str(_it) + '.pickle', 'wb'))
 
 # In[16]:
 
@@ -231,7 +233,7 @@ for _it in tqdm(range(re_trainings)):
 plt.figure(figsize=(6,6))
 sns.boxplot(x=["Acc. Clean Test", "Acc. Perturbed Test","Acc. Clean Val", "Acc. Perturbed Val"], y=[accuracies_clean_unlabeled, accuracies_atk_unlabeled, accuracies_clean_val, accuracies_atk_val])#, re_trainings*[accuracy_logistic]])
 plt.title(f"Accuracy before and after perturbing {int(share_perturbations*100)}% edges using {variant}")
-plt.savefig('./experiment/' + experiment_prefix + "/plot.png", dpi=600)
-plt.savefig('./experiment/' + experiment_prefix + "/example.svg")
+plt.savefig( experiment_prefix + "/plot.png", dpi=600)
+plt.savefig( experiment_prefix + "/example.svg")
 plt.show()
 
