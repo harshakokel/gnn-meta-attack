@@ -360,8 +360,8 @@ class GNNMetaApprox(GNNAttack):
             # This variable "stores" the gradients of every inner training step.
             self.grad_sum = tf.Variable(np.zeros(self.N * self.N), dtype=self.dtype)
 
-            self.adjacency_grad = tf.multiply(tf.gradients(attack_loss, self.adjacency_changes)[0],
-                                              tf.reshape(self.modified_adjacency, [-1]) * -2 + 1,
+            self.adjacency_grad = tf.multiply(tf.gradients(attack_loss, self.adjacency_changes)[0] * -1,
+                                              tf.reshape(self.modified_adjacency, [-1]),
                                               name="Adj_gradient")
             # Add the current gradient to the sum.
             self.grad_sum_add = tf.assign_add(self.grad_sum, self.adjacency_grad)
@@ -587,8 +587,8 @@ class GNNMeta(GNNAttack):
             attack_loss = tf.reduce_mean(attack_loss_per_node)
 
             # Meta gradient computation.
-            self.adjacency_meta_grad = tf.multiply(tf.gradients(attack_loss, self.adjacency_changes)[0],
-                                                   tf.reshape(self.modified_adjacency, [-1]) * -2 + 1,
+            self.adjacency_meta_grad = tf.multiply(tf.gradients(attack_loss, self.adjacency_changes)[0] * -1,
+                                                   tf.reshape(self.modified_adjacency, [-1]),
                                                    name="Meta_gradient")
 
             # Make sure that the minimum entry is 0.
