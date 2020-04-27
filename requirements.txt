@@ -1,4 +1,7 @@
 numpy
 scipy
 scikit-learn
-tensorflow
+tensorflow==1.15.0
+seaborn
+tqdm
+matplotlib
