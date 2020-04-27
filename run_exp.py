@@ -240,7 +240,7 @@ for _it in tqdm(range(re_trainings)):
 
 
 plt.figure(figsize=(6,6))
-sns.boxplot(x=["Acc. Clean Test", "Acc. Perturbed Test","Acc. Clean Val", "Acc. Perturbed Val"], y=[accuracies_clean_unlabeled, accuracies_atk_unlabeled, accuracies_clean_val, accuracies_atk_val])#, re_trainings*[accuracy_logistic]])
+sns.boxplot(x=["Acc. Clean Test", "Acc. Perturbed Test","Acc. Clean Val", "Acc. Perturbed Val","Acc. Clean unlabeled", "Acc. Perturbed unlabeled","Acc. Clean Train", "Acc. Perturbed Train"], y=[accuracies_clean_test, accuracies_atk_test, accuracies_clean_val, accuracies_atk_val,accuracies_clean_unlabeled, accuracies_atk_unlabeled, accuracies_clean_train, accuracies_atk_train])#, re_trainings*[accuracy_logistic]])
 plt.title("Accuracy before and after perturbing "+str(int(share_perturbations*100))+" edges using "+ variant)
 plt.savefig( experiment_prefix + "/plot.png", dpi=600)
 plt.savefig( experiment_prefix + "/example.svg")
