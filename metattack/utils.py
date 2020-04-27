@@ -1,10 +1,10 @@
 """
 Implementation of the method proposed in the paper:
 'Adversarial Attacks on Graph Neural Networks via Meta Learning'
-by Daniel Zügner, Stephan Günnemann
+by Daniel Zugner, Stephan Gunnemann
 Published at ICLR 2019 in New Orleans, USA.
 Copyright (C) 2019
-Daniel Zügner
+Daniel Zugner
 Technical University of Munich
 """
 

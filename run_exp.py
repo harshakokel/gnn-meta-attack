@@ -19,7 +19,7 @@ try:
 except ImportError:
     tqdm = lambda x: x
 
-gpu_id = 0
+gpu_id = None
 
 
 # Settings
