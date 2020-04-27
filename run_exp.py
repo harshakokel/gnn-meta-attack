@@ -71,7 +71,7 @@ val_share = 0.1
 train_share = 1 - unlabeled_share - val_share
 np.random.seed(seed)
 
-split_train, split_val, split_unlabeled = utils.train_val_test_split_tabular(np.arange(_N),
+split_train, split_val, split_test= utils.train_val_test_split_tabular(np.arange(_N),
                                                                        train_size=train_share,
                                                                        val_size=val_share,
                                                                        test_size=unlabeled_share,
@@ -80,9 +80,9 @@ split_train, split_val, split_unlabeled = utils.train_val_test_split_tabular(np.
 if record_experiment:
     pickle.dump(split_train, open(experiment_prefix+'/split_train.pickle', 'wb'))
     pickle.dump(split_val, open( experiment_prefix + '/split_val.pickle', 'wb'))
-    pickle.dump(split_unlabeled, open( experiment_prefix + '/split_unlabeled.pickle', 'wb'))
+    pickle.dump(split_test, open( experiment_prefix + '/split_test.pickle', 'wb'))
 
-split_unlabeled = np.union1d(split_val, split_unlabeled)
+split_unlabeled = np.union1d(split_val, split_test)
 
 
 # In[3]:
@@ -161,8 +161,7 @@ if approximate_meta_gradient:
 else:
     gcn_attack.attack(perturbations, split_train, idx_attack)
 
-if record_experiment:
-    pickle.dump( gcn_attack, open( experiment_prefix + '/gcn_attack.pickle', 'wb'))
+
 
 
 # In[10]:
@@ -171,9 +170,6 @@ if record_experiment:
 adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
 modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
 
-if record_experiment:
-    pickle.dump(adjacency_changes, open( experiment_prefix + '/adjacency_changes.pickle', 'wb'))
-    pickle.dump(modified_adjacency, open( experiment_prefix + '/modified_adjacency.pickle', 'wb'))
 
 # In[11]:
 
@@ -193,16 +189,23 @@ gcn_before_attack.build(with_relu=True)
 
 accuracies_clean_unlabeled = []
 accuracies_clean_val = []
+accuracies_clean_test = []
+accuracies_clean_train = []
 for _it in tqdm(range(re_trainings)):
     gcn_before_attack.train(split_train, initialize=True, display=False)
     accuracy_clean_val = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_val].mean()
     accuracies_clean_val.append(accuracy_clean_val)
     accuracy_clean_unlabeled = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
     accuracies_clean_unlabeled.append(accuracy_clean_unlabeled)
+    accuracy_clean_test = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_test].mean()
+    accuracies_clean_test.append(accuracy_clean_test)
+    accuracy_clean_train = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_train].mean()
+    accuracies_clean_train.append(accuracy_clean_train)
     if record_experiment:
-        pickle.dump(gcn_before_attack, open( experiment_prefix + '/gcn_before_attack'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_clean_unlabeled, open( experiment_prefix + '/accuracy_clean_unlabeled'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_clean_val, open( experiment_prefix + '/accuracy_clean_val'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_unlabeled, open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_val, open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_train, open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_clean_test, open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'wb'))
 
 # In[14]:
 
@@ -213,7 +216,8 @@ gcn_after_attack.build(with_relu=True)
 
 # In[15]:
 
-
+accuracies_atk_train = []
+accuracies_atk_test = []
 accuracies_atk_unlabeled = []
 accuracies_atk_val = []
 for _it in tqdm(range(re_trainings)):
@@ -222,10 +226,15 @@ for _it in tqdm(range(re_trainings)):
     accuracies_atk_unlabeled.append(accuracy_perturbed_unlabeled)
     accuracy_perturbed_val = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_val].mean()
     accuracies_atk_val.append(accuracy_perturbed_val)
+    accuracy_perturbed_train = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_train].mean()
+    accuracies_atk_train.append(accuracy_perturbed_train)
+    accuracy_perturbed_test = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_test].mean()
+    accuracies_atk_test.append(accuracy_perturbed_test)
     if record_experiment:
-        pickle.dump(gcn_after_attack, open( experiment_prefix + '/gcn_after_attack'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_perturbed_unlabeled, open( experiment_prefix + '/accuracy_perturbed_unlabeled'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_perturbed_val, open( experiment_prefix + '/accuracy_perturbed_val' + str(_it) + '.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_unlabeled, open( experiment_prefix + '/accuracy_perturbed_unlabeled_'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_val, open( experiment_prefix + '/accuracy_perturbed_val_' + str(_it) + '.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_train, open( experiment_prefix + '/accuracy_perturbed_train_'+str(_it)+'.pickle', 'wb'))
+        pickle.dump(accuracy_perturbed_test, open( experiment_prefix + '/accuracy_perturbed_test_' + str(_it) + '.pickle', 'wb'))
 
 # In[16]:
 
@@ -237,3 +246,8 @@ plt.savefig( experiment_prefix + "/plot.png", dpi=600)
 plt.savefig( experiment_prefix + "/example.svg")
 plt.show()
 
+
+if record_experiment:
+    pickle.dump(modified_adjacency, open( experiment_prefix + '/modified_adjacency.pickle', 'wb'))
+    pickle.dump(adjacency_changes, open( experiment_prefix + '/adjacency_changes.pickle', 'wb'))
+    pickle.dump(gcn_attack, open(experiment_prefix + '/gcn_attack.pickle', 'wb'))
