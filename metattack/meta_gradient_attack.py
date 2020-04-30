@@ -127,6 +127,7 @@ class GNNAttack:
                 # The variable storing the changes to the adjacency matrix. Shape [N*N]
                 self.adjacency_changes = tf.Variable(np.zeros(adjacency_matrix.size), dtype=self.dtype,
                                                      name="Adjacency_delta")
+                self.adjacency_change_list = []
 
                 # reshape to [N, N] and set the diagonal to 0
                 tf_adjacency_square = tf.matrix_set_diag(tf.reshape(self.adjacency_changes, adjacency_matrix.shape),
@@ -438,6 +439,7 @@ class GNNMetaApprox(GNNAttack):
                 self.session.run(self.adjacency_update,
                                  {self.idx_attack: idx_attack, self.idx_labeled: idx_labeled,
                                   self.idx_unlabeled: idx_unlabeled})
+                self.adjacency_change_list.append(self.modified_adjacency.eval(session=self.session))
 
 
 class GNNMeta(GNNAttack):
@@ -675,6 +677,7 @@ class GNNMeta(GNNAttack):
             for _it in tqdm(range(perturbations), desc="Perturbing graph"):
                 self.session.run(self.adjacency_meta_update,
                                  {self.idx_attack: idx_attack, self.idx_labeled: idx_labeled})
+                self.adjacency_change_list.append(self.modified_adjacency.eval(session=self.session))
 
                 
 def sparse_dropout(x, keep_prob, noise_shape):

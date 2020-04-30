@@ -27,7 +27,8 @@ gpu_id = None
 variants = ["Meta-Train", "Meta-Self","A-Meta-Train", "A-Meta-Self", "A-Meta-Both"]
 # Choose the variant you would like to try
 variant = "A-Meta-Train"
-share_perturbations = 0.05
+share_perturbations = 0.01
+plot_perturbations = [0.005, 0.01]
 dataset = "citeseer"
 train_iters = 100
 experiment_prefix = "./experiments/"+date.today().strftime("%m_%d_")+dataset+"_"+str(share_perturbations)+"_"+variant
@@ -167,8 +168,6 @@ else:
 # In[10]:
 
 
-adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
-modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
 
 
 # In[11]:
@@ -209,50 +208,135 @@ for _it in tqdm(range(re_trainings)):
 
 # In[14]:
 
+adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
+modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
 
-gcn_after_attack = mtk.GCNSparse(sp.csr_matrix(modified_adjacency), _X_obs, _Z_obs, hidden_sizes, gpu_id=gpu_id)
-gcn_after_attack.build(with_relu=True)
-
-
-# In[15]:
-
-accuracies_atk_train = []
-accuracies_atk_test = []
-accuracies_atk_unlabeled = []
-accuracies_atk_val = []
-for _it in tqdm(range(re_trainings)):
-    gcn_after_attack.train(split_train, initialize=True, display=False)
-    accuracy_perturbed_unlabeled = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
-    accuracies_atk_unlabeled.append(accuracy_perturbed_unlabeled)
-    accuracy_perturbed_val = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_val].mean()
-    accuracies_atk_val.append(accuracy_perturbed_val)
-    accuracy_perturbed_train = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_train].mean()
-    accuracies_atk_train.append(accuracy_perturbed_train)
-    accuracy_perturbed_test = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_test].mean()
-    accuracies_atk_test.append(accuracy_perturbed_test)
-    if record_experiment:
-        pickle.dump(accuracy_perturbed_unlabeled, open( experiment_prefix + '/accuracy_perturbed_unlabeled_'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_perturbed_val, open( experiment_prefix + '/accuracy_perturbed_val_' + str(_it) + '.pickle', 'wb'))
-        pickle.dump(accuracy_perturbed_train, open( experiment_prefix + '/accuracy_perturbed_train_'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_perturbed_test, open( experiment_prefix + '/accuracy_perturbed_test_' + str(_it) + '.pickle', 'wb'))
-
-# In[16]:
-
-plt.figure(figsize=(6,6))
-chart = sns.boxplot(x=["Orig test-set", "Pert test-set","Orig val-set", "Pert val-set","Orig both", "Pert both"], y=[accuracies_clean_test, accuracies_atk_test, accuracies_clean_val, accuracies_atk_val,accuracies_clean_unlabeled, accuracies_atk_unlabeled])#, re_trainings*[accuracy_logistic]])
-plt.title("Accuracy before and after perturbing "+str(int(share_perturbations*100))+"% edges using "+ variant)
-chart.set_xticklabels(chart.get_xticklabels(), rotation=45)
-plt.savefig( experiment_prefix + "/plot.png", dpi=600)
-plt.show()
-
-plt.figure(figsize=(6,6))
-sns.boxplot(x=["Acc. Clean Train", "Acc. Perturbed Train"], y=[ accuracies_clean_train, accuracies_atk_train])#, re_trainings*[accuracy_logistic]])
-plt.title("Accuracy before and after perturbing "+str(int(share_perturbations*100))+"% edges using "+ variant)
-plt.savefig( experiment_prefix + "/trainplot.png", dpi=600)
-plt.show()
-
+modified_adjacency_list = gcn_attack.adjacency_change_list
+print( "Is the modified adjacency same as last element in the list? "+ str(np.array_equal(modified_adjacency, modified_adjacency_list[-1])))
 
 if record_experiment:
-    pickle.dump(modified_adjacency, open( experiment_prefix + '/modified_adjacency.pickle', 'wb'))
-    pickle.dump(adjacency_changes, open( experiment_prefix + '/adjacency_changes.pickle', 'wb'))
+    pickle.dump(modified_adjacency_list, open( experiment_prefix + '/modified_adjacency_list.pickle', 'wb'))
+
+    
+accuracies_pert_train = []
+accuracies_pert_test = []
+accuracies_pert_unlabeled = []
+accuracies_pert_val = []
+for p in plot_perturbations:
+
+    share_perturbations = p
+
+    perturbations = int(share_perturbations * (_A_obs.sum() // 2))
+
+    modified_adjacency = modified_adjacency_list[perturbations-1]
+    gcn_after_attack = mtk.GCNSparse(sp.csr_matrix(modified_adjacency), _X_obs, _Z_obs, hidden_sizes, gpu_id=gpu_id)
+    gcn_after_attack.build(with_relu=True)
+
+
+    # In[15]:
+
+    accuracies_atk_train = []
+    accuracies_atk_test = []
+    accuracies_atk_unlabeled = []
+    accuracies_atk_val = []
+    for _it in tqdm(range(re_trainings)):
+        gcn_after_attack.train(split_train, initialize=True, display=False)
+        accuracy_perturbed_unlabeled = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
+        accuracies_atk_unlabeled.append(accuracy_perturbed_unlabeled)
+        accuracy_perturbed_val = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_val].mean()
+        accuracies_atk_val.append(accuracy_perturbed_val)
+        accuracy_perturbed_train = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_train].mean()
+        accuracies_atk_train.append(accuracy_perturbed_train)
+        accuracy_perturbed_test = (gcn_after_attack.logits.eval(session=gcn_after_attack.session).argmax(1) == _z_obs)[split_test].mean()
+        accuracies_atk_test.append(accuracy_perturbed_test)
+        if record_experiment:
+            pickle.dump(accuracy_perturbed_unlabeled, open( experiment_prefix + '/accuracy_'+str(perturbations)+'_perturbed_unlabeled_'+str(_it)+'.pickle', 'wb'))
+            pickle.dump(accuracy_perturbed_val, open( experiment_prefix + '/accuracy_'+str(perturbations)+'_perturbed_val_' + str(_it) + '.pickle', 'wb'))
+            pickle.dump(accuracy_perturbed_train, open( experiment_prefix + '/accuracy_'+str(perturbations)+'_perturbed_train_'+str(_it)+'.pickle', 'wb'))
+            pickle.dump(accuracy_perturbed_test, open( experiment_prefix + '/accuracy_'+str(perturbations)+'_perturbed_test_' + str(_it) + '.pickle', 'wb'))
+    accuracies_pert_train.append(accuracies_atk_train)
+    accuracies_pert_test.append(accuracies_atk_test)
+    accuracies_pert_unlabeled.append(accuracies_atk_unlabeled)
+    accuracies_pert_val.append(accuracies_atk_val)
+    # In[16]:
+
+    plt.figure(figsize=(6,6))
+    chart = sns.boxplot(x=["Orig test-set", "Pert test-set","Orig val-set", "Pert val-set","Orig both", "Pert both"], y=[accuracies_clean_test, accuracies_atk_test, accuracies_clean_val, accuracies_atk_val,accuracies_clean_unlabeled, accuracies_atk_unlabeled])#, re_trainings*[accuracy_logistic]])
+    plt.title("Accuracy before and after perturbing "+str(int(share_perturbations*100))+"% edges using "+ variant)
+    chart.set_xticklabels(chart.get_xticklabels(), rotation=45)
+    plt.savefig( experiment_prefix + "/plot_"+str(perturbations)+"_perturbed.png", dpi=600)
+    plt.show()
+
+    plt.figure(figsize=(6,6))
+    sns.boxplot(x=["Acc. Clean Train", "Acc. Perturbed Train"], y=[ accuracies_clean_train, accuracies_atk_train])#, re_trainings*[accuracy_logistic]])
+    plt.title("Accuracy before and after perturbing "+str(int(share_perturbations*100))+"% edges using "+ variant)
+    plt.savefig( experiment_prefix + "/trainplot_"+str(perturbations)+"_perturbed.png", dpi=600)
+    plt.show()
+
+
+
+pickle.dump(accuracies_pert_train, open( experiment_prefix + '/accuracies_pert_train.pickle', 'wb'))
+pickle.dump(accuracies_pert_test, open( experiment_prefix + '/accuracies_pert_test.pickle', 'wb'))
+pickle.dump(accuracies_pert_unlabeled, open( experiment_prefix + '/accuracies_pert_unlabeled.pickle', 'wb'))
+pickle.dump(accuracies_pert_val, open( experiment_prefix + '/accuracies_pert_val.pickle', 'wb'))
+
+mean_train = np.mean(accuracies_pert_train,axis=1)
+mean_test = np.mean(accuracies_pert_test,axis=1)
+mean_unlabeled = np.mean(accuracies_pert_unlabeled,axis=1)
+mean_val = np.mean(accuracies_pert_val,axis=1)
+std_train = np.std(accuracies_pert_train,axis=1)
+std_test = np.std(accuracies_pert_test,axis=1)
+std_unlabeled = np.std(accuracies_pert_unlabeled,axis=1)
+std_val = np.std(accuracies_pert_val,axis=1)
+
+# Build the plot
+fig, ax = plt.subplots()
+ax.errorbar(plot_perturbations, mean_train, yerr=std_train, label="pert train")
+plt.axhline(y=np.mean(accuracy_clean_train), color='r', linestyle='-', label="orig train")
+ax.set_xlabel('% Perturbations')
+ax.set_ylabel('Accuracies')
+ax.set_title('Training set')
+ax.legend()
+plt.savefig( experiment_prefix + "/train_plot.png", dpi=600)
+plt.show()
+
+# Build the plot
+fig, ax = plt.subplots()
+ax.errorbar(plot_perturbations, mean_test, yerr=std_test, label="pert test")
+plt.axhline(y=np.mean(accuracy_clean_test), color='r', linestyle='-', label="orig test")
+ax.set_xlabel('% Perturbations')
+ax.set_ylabel('Accuracies')
+ax.set_title('Test set')
+ax.legend()
+plt.savefig( experiment_prefix + "/test_plot.png", dpi=600)
+plt.show()
+
+
+# Build the plot
+fig, ax = plt.subplots()
+ax.errorbar(plot_perturbations, mean_val, yerr=std_val, label="pert val")
+plt.axhline(y=np.mean(accuracy_clean_val), color='r', linestyle='-', label="orig val")
+ax.set_xlabel('% Perturbations')
+ax.set_ylabel('Accuracies')
+ax.set_title('Validation set')
+ax.legend()
+plt.savefig( experiment_prefix + "/val_plot.png", dpi=600)
+plt.show()
+
+
+# Build the plot
+fig, ax = plt.subplots()
+ax.errorbar(plot_perturbations, mean_unlabeled, yerr=std_unlabeled, label="pert unlabeled")
+plt.axhline(y=np.mean(accuracy_clean_unlabeled), color='r', linestyle='-', label="orig unlabeled")
+ax.set_xlabel('% Perturbations')
+ax.set_ylabel('Accuracies')
+ax.set_title('Test + Validation set')
+ax.legend()
+plt.savefig( experiment_prefix + "/unlabeled_plot.png", dpi=600)
+plt.show()
+
+
+
+
+
 
