@@ -13,6 +13,7 @@ import numpy as np
 from metattack import utils
 import scipy.sparse as sp
 from tensorflow.contrib import slim
+import pickle
 
 try:
     from tqdm import tqdm
@@ -400,7 +401,7 @@ class GNNMetaApprox(GNNAttack):
                                                             tf.reshape(self.modified_adjacency, [-1]),
                                                             adj_argmax_combined) + 1)
 
-    def attack(self, perturbations, idx_labeled, idx_unlabeled, idx_attack, initialize=True):
+    def attack(self, perturbations, idx_labeled, idx_unlabeled, idx_attack, initialize=True, experiment_prefix="./experiments/"):
         """
         Perform the attack on the surrogate model.
 
@@ -439,7 +440,8 @@ class GNNMetaApprox(GNNAttack):
                 self.session.run(self.adjacency_update,
                                  {self.idx_attack: idx_attack, self.idx_labeled: idx_labeled,
                                   self.idx_unlabeled: idx_unlabeled})
-                self.adjacency_change_list.append(self.modified_adjacency.eval(session=self.session))
+                pickle.dump(self.modified_adjacency.eval(session=self.session),
+                            open(experiment_prefix + '/modified_adjacency_' + str(_it) + '.pickle', 'wb'))
 
 
 class GNNMeta(GNNAttack):
@@ -650,7 +652,7 @@ class GNNMeta(GNNAttack):
                 self.combined_update = tf.cond(cond, lambda: self.adjacency_meta_update,
                                                lambda: self.attribute_meta_update)
 
-    def attack(self, perturbations, idx_labeled, idx_attack, initialize=True):
+    def attack(self, perturbations, idx_labeled, idx_attack, initialize=True, experiment_prefix="./experiments/"):
         """
         Perform the attack on the surrogate model.
 
@@ -677,7 +679,8 @@ class GNNMeta(GNNAttack):
             for _it in tqdm(range(perturbations), desc="Perturbing graph"):
                 self.session.run(self.adjacency_meta_update,
                                  {self.idx_attack: idx_attack, self.idx_labeled: idx_labeled})
-                self.adjacency_change_list.append(self.modified_adjacency.eval(session=self.session))
+                pickle.dump(self.modified_adjacency.eval(session=self.session),
+                            open(experiment_prefix + '/modified_adjacency_' + str(_it) + '.pickle', 'wb'))
 
                 
 def sparse_dropout(x, keep_prob, noise_shape):

@@ -14,6 +14,7 @@ from datetime import date
 from matplotlib import pyplot as plt
 import scipy.sparse as sp
 import os
+import sys
 try:
     from tqdm import tqdm
 except ImportError:
@@ -158,9 +159,9 @@ gcn_attack.make_loss(ll_constraint=enforce_ll_constrant)
 
 
 if approximate_meta_gradient:
-    gcn_attack.attack(perturbations, split_train, split_unlabeled, idx_attack)
+    gcn_attack.attack(perturbations, split_train, split_unlabeled, idx_attack, experiment_prefix=experiment_prefix)
 else:
-    gcn_attack.attack(perturbations, split_train, idx_attack)
+    gcn_attack.attack(perturbations, split_train, idx_attack, experiment_prefix=experiment_prefix)
 
 
 
@@ -207,6 +208,7 @@ for _it in tqdm(range(re_trainings)):
         pickle.dump(accuracy_clean_test, open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'wb'))
 
 # In[14]:
+sys.exit(0)
 
 adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
 modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
@@ -214,10 +216,7 @@ modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.sessi
 modified_adjacency_list = gcn_attack.adjacency_change_list
 print( "Is the modified adjacency same as last element in the list? "+ str(np.array_equal(modified_adjacency, modified_adjacency_list[-1])))
 
-if record_experiment:
-    pickle.dump(modified_adjacency_list, open( experiment_prefix + '/modified_adjacency_list.pickle', 'wb'))
 
-    
 accuracies_pert_train = []
 accuracies_pert_test = []
 accuracies_pert_unlabeled = []
