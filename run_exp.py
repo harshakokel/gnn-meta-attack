@@ -210,10 +210,21 @@ re_trainings = 20
 # # In[14]:
 # sys.exit(0)
 
-accuracy_clean_unlabeled= pickle.load( open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'rb'))
-accuracy_clean_val= pickle.load(open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'rb'))
-accuracy_clean_train= pickle.load(open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'rb'))
-accuracy_clean_test= pickle.load(open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'rb'))
+
+accuracies_clean_unlabeled = []
+accuracies_clean_val = []
+accuracies_clean_test = []
+accuracies_clean_train = []
+for _it in tqdm(range(re_trainings)):
+    accuracy_clean_unlabeled= pickle.load( open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'rb'))
+    accuracy_clean_val= pickle.load(open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'rb'))
+    accuracy_clean_train= pickle.load(open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'rb'))
+    accuracy_clean_test= pickle.load(open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'rb'))
+    accuracies_clean_val.append(accuracy_clean_val)
+    accuracies_clean_unlabeled.append(accuracy_clean_unlabeled)
+    accuracies_clean_test.append(accuracy_clean_test)
+    accuracies_clean_train.append(accuracy_clean_train)
+
 
 adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
 modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
