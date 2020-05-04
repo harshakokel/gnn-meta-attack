@@ -28,11 +28,11 @@ gpu_id = None
 variants = ["Meta-Train", "Meta-Self","A-Meta-Train", "A-Meta-Self", "A-Meta-Both"]
 # Choose the variant you would like to try
 variant = "A-Meta-Train"
-share_perturbations = 0.01
-plot_perturbations = [0.005, 0.01]
+share_perturbations = 0.6
+plot_perturbations = [0.05,0.1,0.2,0.3,0.4,0.5,0.6]
 dataset = "citeseer"
 train_iters = 100
-experiment_prefix = "./experiments/"+date.today().strftime("%m_%d_")+dataset+"_"+str(share_perturbations)+"_"+variant
+experiment_prefix = "./experiments/05_03_citeseer_0.6_A-Meta-Train"
 if not  os.path.isdir(experiment_prefix):
     os.makedirs(experiment_prefix)
 record_experiment = True
@@ -112,103 +112,108 @@ labels_self_training[split_train] = _Z_obs[split_train]
 
 
 # In[6]:
-
-
-assert variant in variants
-
-enforce_ll_constrant = False
-approximate_meta_gradient = False
-if variant.startswith("A-"): # approximate meta gradient
-    approximate_meta_gradient = True
-    if "Train" in variant:
-        lambda_ = 1
-    elif "Self" in variant:
-        lambda_ = 0
-    else:
-        lambda_ = 0.5
-        
-if "Train" in variant:
-    idx_attack = split_train
-elif "Self" in variant:
-    idx_attack = split_unlabeled
-else:  # Both
-    idx_attack = np.union1d(split_train, split_unlabeled)
-
-if record_experiment:
-    pickle.dump(idx_attack, open( experiment_prefix + '/idx_attack.pickle', 'wb'))
-
-# In[7]:
-
-
-if approximate_meta_gradient:
-    gcn_attack = mtk.GNNMetaApprox(_A_obs, _X_obs, labels_self_training, hidden_sizes, 
-                                   gpu_id=gpu_id, _lambda=lambda_, train_iters=train_iters, dtype=dtype)
-else:
-    gcn_attack = mtk.GNNMeta(_A_obs, _X_obs.toarray().astype("float32"), labels_self_training, hidden_sizes, 
-                             gpu_id=gpu_id, attack_features=False, train_iters=train_iters, dtype=dtype)
-
-
-# In[8]:
-
-
-gcn_attack.build()
-gcn_attack.make_loss(ll_constraint=enforce_ll_constrant)
-
-
-# In[9]:
-
-
-if approximate_meta_gradient:
-    gcn_attack.attack(perturbations, split_train, split_unlabeled, idx_attack, experiment_prefix=experiment_prefix)
-else:
-    gcn_attack.attack(perturbations, split_train, idx_attack, experiment_prefix=experiment_prefix)
-
-
-
-
-# In[10]:
-
-
-
-
-# In[11]:
-
-
+#
+#
+# assert variant in variants
+#
+# enforce_ll_constrant = False
+# approximate_meta_gradient = False
+# if variant.startswith("A-"): # approximate meta gradient
+#     approximate_meta_gradient = True
+#     if "Train" in variant:
+#         lambda_ = 1
+#     elif "Self" in variant:
+#         lambda_ = 0
+#     else:
+#         lambda_ = 0.5
+#
+# if "Train" in variant:
+#     idx_attack = split_train
+# elif "Self" in variant:
+#     idx_attack = split_unlabeled
+# else:  # Both
+#     idx_attack = np.union1d(split_train, split_unlabeled)
+#
+# if record_experiment:
+#     pickle.dump(idx_attack, open( experiment_prefix + '/idx_attack.pickle', 'wb'))
+#
+# # In[7]:
+#
+#
+# if approximate_meta_gradient:
+#     gcn_attack = mtk.GNNMetaApprox(_A_obs, _X_obs, labels_self_training, hidden_sizes,
+#                                    gpu_id=gpu_id, _lambda=lambda_, train_iters=train_iters, dtype=dtype)
+# else:
+#     gcn_attack = mtk.GNNMeta(_A_obs, _X_obs.toarray().astype("float32"), labels_self_training, hidden_sizes,
+#                              gpu_id=gpu_id, attack_features=False, train_iters=train_iters, dtype=dtype)
+#
+#
+# # In[8]:
+#
+#
+# gcn_attack.build()
+# gcn_attack.make_loss(ll_constraint=enforce_ll_constrant)
+#
+#
+# # In[9]:
+#
+#
+# if approximate_meta_gradient:
+#     gcn_attack.attack(perturbations, split_train, split_unlabeled, idx_attack, experiment_prefix=experiment_prefix)
+# else:
+#     gcn_attack.attack(perturbations, split_train, idx_attack, experiment_prefix=experiment_prefix)
+#
+#
+#
+#
+# # In[10]:
+#
+#
+#
+#
+# # In[11]:
+#
+#
 re_trainings = 20
+#
+#
+# # In[12]:
+#
+#
+# gcn_before_attack = mtk.GCNSparse(sp.csr_matrix(_A_obs), _X_obs, _Z_obs, hidden_sizes, gpu_id=gpu_id)
+# gcn_before_attack.build(with_relu=True)
+#
+#
+# # In[13]:
+#
+#
+# accuracies_clean_unlabeled = []
+# accuracies_clean_val = []
+# accuracies_clean_test = []
+# accuracies_clean_train = []
+# for _it in tqdm(range(re_trainings)):
+#     gcn_before_attack.train(split_train, initialize=True, display=False)
+#     accuracy_clean_val = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_val].mean()
+#     accuracies_clean_val.append(accuracy_clean_val)
+#     accuracy_clean_unlabeled = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
+#     accuracies_clean_unlabeled.append(accuracy_clean_unlabeled)
+#     accuracy_clean_test = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_test].mean()
+#     accuracies_clean_test.append(accuracy_clean_test)
+#     accuracy_clean_train = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_train].mean()
+#     accuracies_clean_train.append(accuracy_clean_train)
+#     if record_experiment:
+#         pickle.dump(accuracy_clean_unlabeled, open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'wb'))
+#         pickle.dump(accuracy_clean_val, open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'wb'))
+#         pickle.dump(accuracy_clean_train, open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'wb'))
+#         pickle.dump(accuracy_clean_test, open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'wb'))
+#
+# # In[14]:
+# sys.exit(0)
 
-
-# In[12]:
-
-
-gcn_before_attack = mtk.GCNSparse(sp.csr_matrix(_A_obs), _X_obs, _Z_obs, hidden_sizes, gpu_id=gpu_id)
-gcn_before_attack.build(with_relu=True)
-
-
-# In[13]:
-
-
-accuracies_clean_unlabeled = []
-accuracies_clean_val = []
-accuracies_clean_test = []
-accuracies_clean_train = []
-for _it in tqdm(range(re_trainings)):
-    gcn_before_attack.train(split_train, initialize=True, display=False)
-    accuracy_clean_val = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_val].mean()
-    accuracies_clean_val.append(accuracy_clean_val)
-    accuracy_clean_unlabeled = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_unlabeled].mean()
-    accuracies_clean_unlabeled.append(accuracy_clean_unlabeled)
-    accuracy_clean_test = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_test].mean()
-    accuracies_clean_test.append(accuracy_clean_test)
-    accuracy_clean_train = (gcn_before_attack.logits.eval(session=gcn_before_attack.session).argmax(1) == _z_obs)[split_train].mean()
-    accuracies_clean_train.append(accuracy_clean_train)
-    if record_experiment:
-        pickle.dump(accuracy_clean_unlabeled, open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_clean_val, open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_clean_train, open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'wb'))
-        pickle.dump(accuracy_clean_test, open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'wb'))
-
-# In[14]:
-sys.exit(0)
+accuracy_clean_unlabeled= pickle.load( open( experiment_prefix + '/accuracy_clean_unlabeled_'+str(_it)+'.pickle', 'rb'))
+accuracy_clean_val= pickle.load(open( experiment_prefix + '/accuracy_clean_val_'+str(_it)+'.pickle', 'rb'))
+accuracy_clean_train= pickle.load(open( experiment_prefix + '/accuracy_clean_train_'+str(_it)+'.pickle', 'rb'))
+accuracy_clean_test= pickle.load(open( experiment_prefix + '/accuracy_clean_test_'+str(_it)+'.pickle', 'rb'))
 
 adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
 modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
@@ -227,7 +232,7 @@ for p in plot_perturbations:
 
     perturbations = int(share_perturbations * (_A_obs.sum() // 2))
 
-    modified_adjacency = modified_adjacency_list[perturbations-1]
+    modified_adjacency = pickle.load(open(experiment_prefix+"/modified_adjacency_" + str(perturbations-1) + '.pickle',"rb"))
     gcn_after_attack = mtk.GCNSparse(sp.csr_matrix(modified_adjacency), _X_obs, _Z_obs, hidden_sizes, gpu_id=gpu_id)
     gcn_after_attack.build(with_relu=True)
 
