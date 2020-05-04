@@ -226,11 +226,11 @@ for _it in tqdm(range(re_trainings)):
     accuracies_clean_train.append(accuracy_clean_train)
 
 
-adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
-modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
+# adjacency_changes = gcn_attack.adjacency_changes.eval(session=gcn_attack.session).reshape(_A_obs.shape)
+# modified_adjacency = gcn_attack.modified_adjacency.eval(session=gcn_attack.session)
 
-modified_adjacency_list = gcn_attack.adjacency_change_list
-print( "Is the modified adjacency same as last element in the list? "+ str(np.array_equal(modified_adjacency, modified_adjacency_list[-1])))
+# modified_adjacency_list = gcn_attack.adjacency_change_list
+# print( "Is the modified adjacency same as last element in the list? "+ str(np.array_equal(modified_adjacency, modified_adjacency_list[-1])))
 
 
 accuracies_pert_train = []
